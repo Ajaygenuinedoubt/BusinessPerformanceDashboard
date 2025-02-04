@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Performance Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color:rgb(179, 38, 38);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            padding: 30px;
+            border-radius: 10px;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .upload-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #uploadBtn {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color:rgb(56, 11, 119);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #uploadBtn:hover {
+            background-color:rgb(73, 133, 90);
+        }
+        .file-input {
+            margin-bottom: 20px;
+        }
+        .chart-container {
+            margin-bottom: 40px;
+        }
+        h3 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Business Performance Dashboard</h1>
+        <p>Upload your Dataset in CSV, Excel, or JSON format to generate interactive visualizations.</p>
+    </div>
+
+    <div class="upload-section">
+        <input type="file" id="uploadBtn" accept=".csv, .xlsx, .json" class="file-input">
+    </div>
+
+    <div id="chartsContainer"></div>
+
+</div>
+
+<script>
+    document.getElementById('uploadBtn').addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            const fileName = file.name;
+
+            if (fileName.endsWith(".csv")) {
+                reader.onload = function(event) {
+                    const salesData = Papa.parse(event.target.result, { header: true, skipEmptyLines: true }).data;
+                    generateDashboard(salesData);
+                };
+                reader.readAsText(file);
+            } else if (fileName.endsWith(".xlsx")) {
+                reader.onload = function(event) {
+                    const workbook = XLSX.read(event.target.result, { type: 'binary' });
+                    const sheetName = workbook.SheetNames[0];
+                    const salesData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                    generateDashboard(salesData);
+                };
+                reader.readAsBinaryString(file);
+            } else if (fileName.endsWith(".json")) {
+                reader.onload = function(event) {
+                    const salesData = JSON.parse(event.target.result);
+                    generateDashboard(salesData);
+                };
+                reader.readAsText(file);
+            } else {
+                alert("Unsupported file format! Please upload a CSV, Excel, or JSON file.");
+            }
+        }
+    });
+
+    function generateDashboard(salesData) {
+        const chartsContainer = document.getElementById('chartsContainer');
+        chartsContainer.innerHTML = '';
+
+        const columns = ['Product', 'City', 'Quantity Ordered', 'Price'];
+
+        columns.forEach(column => {
+            const section = document.createElement('div');
+            section.classList.add('chart-container');
+            section.innerHTML = `<h3>${column} Analysis</h3>`;
+
+            const pieChartDiv = document.createElement('div');
+            pieChartDiv.id = `${column}PieChart`;
+            section.appendChild(pieChartDiv);
+
+            const barChartDiv = document.createElement('div');
+            barChartDiv.id = `${column}BarChart`;
+            section.appendChild(barChartDiv);
+
+            const lineChartDiv = document.createElement('div');
+            lineChartDiv.id = `${column}LineChart`;
+            section.appendChild(lineChartDiv);
+
+            const histChartDiv = document.createElement('div');
+            histChartDiv.id = `${column}HistChart`;
+            section.appendChild(histChartDiv);
+
+            const threeDChartDiv = document.createElement('div');
+            threeDChartDiv.id = `${column}3DChart`;
+            section.appendChild(threeDChartDiv);
+
+            chartsContainer.appendChild(section);
+
+            const values = salesData.map(sale => sale[column]);
+
+            createPieChart(values, column);
+            createBarGraph(values, column);
+            if (column === 'Quantity Ordered' || column === 'Price') {
+                createLineGraph(salesData, column);
+            }
+            createHistogram(values, column);
+            create3DChart(salesData, column);
+        });
+    }
+
+    function createPieChart(values, column) {
+        const valueCounts = countValues(values);
+        const pieLabels = Object.keys(valueCounts);
+        const pieValues = Object.values(valueCounts);
+
+        const pieTrace = {
+            labels: pieLabels,
+            values: pieValues,
+            type: 'pie',
+            hoverinfo: 'label+percent',
+            textinfo: 'label+value'
+        };
+        Plotly.newPlot(`${column}PieChart`, [pieTrace], { title: `${column} Distribution` });
+    }
+
+    function createBarGraph(values, column) {
+        const valueCounts = countValues(values);
+        const barLabels = Object.keys(valueCounts);
+        const barValues = Object.values(valueCounts);
+
+        const barTrace = {
+            x: barLabels,
+            y: barValues,
+            type: 'bar',
+            marker: { color: 'rgb(0, 204, 255)' }
+        };
+        Plotly.newPlot(`${column}BarChart`, [barTrace], { title: `${column} Frequency` });
+    }
+
+    function createLineGraph(salesData, column) {
+        const dates = salesData.map(sale => new Date(sale["Order Date"]));
+        const values = salesData.map(sale => parseFloat(sale[column]));
+        const lineTrace = {
+            x: dates,
+            y: values,
+            mode: 'lines',
+            type: 'scatter',
+            name: column
+        };
+        Plotly.newPlot(`${column}LineChart`, [lineTrace], { title: `${column} Over Time` });
+    }
+
+    function createHistogram(values, column) {
+        const histTrace = {
+            x: values,
+            type: 'histogram',
+            nbinsx: 20,
+            marker: { color: 'rgb(255, 153, 51)' }
+        };
+        Plotly.newPlot(`${column}HistChart`, [histTrace], { title: `${column} Distribution (Histogram)` });
+    }
+
+    function create3DChart(salesData, column) {
+        if (column === 'Quantity Ordered' || column === 'Price') {
+            const x = salesData.map(sale => parseFloat(sale["Quantity Ordered"]));
+            const y = salesData.map(sale => parseFloat(sale["Price"]));
+            const z = salesData.map(sale => sale[column]);
+
+            const trace = {
+                x: x,
+                y: y,
+                z: z,
+                mode: 'markers',
+                type: 'scatter3d',
+                marker: {
+                    size: 5,
+                    color: 'rgb(0, 153, 204)',
+                    opacity: 0.8
+                }
+            };
+
+            const layout = {
+                title: `${column} 3D Visualization`,
+                scene: {
+                    xaxis: { title: 'Quantity Ordered' },
+                    yaxis: { title: 'Price' },
+                    zaxis: { title: column }
+                }
+            };
+
+            Plotly.newPlot(`${column}3DChart`, [trace], layout);
+        }
+    }
+
+    function countValues(values) {
+        return values.reduce((acc, value) => {
+            acc[value] = (acc[value] || 0) + 1;
+            return acc;
+        }, {});
+    }
+</script>
+</body>
+</html>
