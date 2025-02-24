@@ -1,4 +1,8 @@
 
+![image](https://github.com/user-attachments/assets/70cf49b1-1583-42f5-bcd8-9aaccf189c15)
+
+
+
 The Interactive Business Performance Dashboard is a web-based tool that allows users to upload sales data in various formats (CSV, Excel, JSON) and generate dynamic, interactive visualizations to analyze sales performance. Users can easily explore key data insights through various chart types like pie charts, bar graphs, line graphs, histograms, and 3D charts. The dashboard provides a clean and visually appealing interface, enabling users to visualize their data quickly and effectively.
 
 This project is designed for anyone who wants to analyze sales data interactively and supports multiple file formats for flexibility.
